@@ -430,7 +430,6 @@ typedef struct HEVCContext {
     int max_ra;
     int bs_width;
     int bs_height;
-    int overlap;
 
     int is_decoded;
     int no_rasl_output_flag;

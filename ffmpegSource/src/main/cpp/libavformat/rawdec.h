@@ -41,8 +41,6 @@ int ff_raw_audio_read_header(AVFormatContext *s);
 
 int ff_raw_video_read_header(AVFormatContext *s);
 
-int ff_raw_subtitle_read_header(AVFormatContext *s);
-
 int ff_raw_data_read_header(AVFormatContext *s);
 
 #define FF_RAWVIDEO_DEMUXER_CLASS(name)\
@@ -85,7 +83,7 @@ AVInputFormat ff_ ## shortname ## _demuxer = {\
     .name           = #shortname,\
     .long_name      = NULL_IF_CONFIG_SMALL(longname),\
     .read_probe     = probe,\
-    .read_header    = ff_raw_subtitle_read_header,\
+    .read_header    = ff_raw_data_read_header,\
     .read_packet    = ff_raw_read_partial_packet,\
     .extensions     = ext,\
     .flags          = flag,\

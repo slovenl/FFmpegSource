@@ -31,7 +31,7 @@ typedef struct {
     FFDemuxSubtitlesQueue q;
 } MPSubContext;
 
-static int mpsub_probe(const AVProbeData *p)
+static int mpsub_probe(AVProbeData *p)
 {
     const char *ptr     = p->buf;
     const char *ptr_end = p->buf + p->buf_size;
@@ -106,6 +106,9 @@ static int mpsub_read_header(AVFormatContext *s)
     ff_subtitles_queue_finalize(s, &mpsub->q);
 
 end:
+    if (res < 0)
+        ff_subtitles_queue_clean(&mpsub->q);
+
     av_bprint_finalize(&buf, NULL);
     return res;
 }

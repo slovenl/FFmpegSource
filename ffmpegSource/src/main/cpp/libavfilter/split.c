@@ -30,9 +30,11 @@
 #include "libavutil/mem.h"
 #include "libavutil/opt.h"
 
+#define FF_INTERNAL_FIELDS 1
+#include "framequeue.h"
+
 #include "avfilter.h"
 #include "audio.h"
-#include "filters.h"
 #include "formats.h"
 #include "internal.h"
 #include "video.h"
@@ -82,7 +84,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *frame)
     for (i = 0; i < ctx->nb_outputs; i++) {
         AVFrame *buf_out;
 
-        if (ff_outlink_get_status(ctx->outputs[i]))
+        if (ctx->outputs[i]->status_in)
             continue;
         buf_out = av_frame_clone(frame);
         if (!buf_out) {

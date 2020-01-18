@@ -35,26 +35,9 @@ typedef struct ScaleVAAPIContext {
 
     char *output_format_string;
 
-    int   mode;
-
     char *w_expr;      // width expression string
     char *h_expr;      // height expression string
 } ScaleVAAPIContext;
-
-static const char *scale_vaapi_mode_name(int mode)
-{
-    switch (mode) {
-#define D(name) case VA_FILTER_SCALING_ ## name: return #name
-        D(DEFAULT);
-        D(FAST);
-        D(HQ);
-        D(NL_ANAMORPHIC);
-#undef D
-    default:
-        return "Invalid";
-    }
-}
-
 
 static int scale_vaapi_config_output(AVFilterLink *outlink)
 {
@@ -87,7 +70,6 @@ static int scale_vaapi_filter_frame(AVFilterLink *inlink, AVFrame *input_frame)
     AVFilterContext *avctx   = inlink->dst;
     AVFilterLink *outlink    = avctx->outputs[0];
     VAAPIVPPContext *vpp_ctx = avctx->priv;
-    ScaleVAAPIContext *ctx   = avctx->priv;
     AVFrame *output_frame    = NULL;
     VASurfaceID input_surface, output_surface;
     VAProcPipelineParameterBuffer params;
@@ -133,11 +115,11 @@ static int scale_vaapi_filter_frame(AVFilterLink *inlink, AVFrame *input_frame)
         ff_vaapi_vpp_colour_standard(input_frame->colorspace);
 
     params.output_region = 0;
-    params.output_background_color = VAAPI_VPP_BACKGROUND_BLACK;
+    params.output_background_color = 0xff000000;
     params.output_color_standard = params.surface_color_standard;
 
     params.pipeline_flags = 0;
-    params.filter_flags = ctx->mode;
+    params.filter_flags = VA_FILTER_SCALING_HQ;
 
     err = ff_vaapi_vpp_render_picture(avctx, &params, output_surface);
     if (err < 0)
@@ -149,10 +131,9 @@ static int scale_vaapi_filter_frame(AVFilterLink *inlink, AVFrame *input_frame)
 
     av_frame_free(&input_frame);
 
-    av_log(avctx, AV_LOG_DEBUG, "Filter output: %s, %ux%u (%"PRId64"), mode: %s.\n",
+    av_log(avctx, AV_LOG_DEBUG, "Filter output: %s, %ux%u (%"PRId64").\n",
            av_get_pix_fmt_name(output_frame->format),
-           output_frame->width, output_frame->height, output_frame->pts,
-           scale_vaapi_mode_name(ctx->mode));
+           output_frame->width, output_frame->height, output_frame->pts);
 
     return ff_filter_frame(outlink, output_frame);
 
@@ -193,17 +174,6 @@ static const AVOption scale_vaapi_options[] = {
       OFFSET(h_expr), AV_OPT_TYPE_STRING, {.str = "ih"}, .flags = FLAGS },
     { "format", "Output video format (software format of hardware frames)",
       OFFSET(output_format_string), AV_OPT_TYPE_STRING, .flags = FLAGS },
-    { "mode", "Scaling mode",
-      OFFSET(mode), AV_OPT_TYPE_INT, { .i64 = VA_FILTER_SCALING_HQ },
-      0, VA_FILTER_SCALING_NL_ANAMORPHIC, FLAGS, "mode" },
-        { "default", "Use the default (depend on the driver) scaling algorithm",
-          0, AV_OPT_TYPE_CONST, { .i64 = VA_FILTER_SCALING_DEFAULT }, 0, 0, FLAGS, "mode" },
-        { "fast", "Use fast scaling algorithm",
-          0, AV_OPT_TYPE_CONST, { .i64 = VA_FILTER_SCALING_FAST }, 0, 0, FLAGS, "mode" },
-        { "hq", "Use high quality scaling algorithm",
-          0, AV_OPT_TYPE_CONST, { .i64 = VA_FILTER_SCALING_HQ }, 0, 0, FLAGS,  "mode" },
-        { "nl_anamorphic", "Use nolinear anamorphic scaling algorithm",
-          0, AV_OPT_TYPE_CONST, { .i64 = VA_FILTER_SCALING_NL_ANAMORPHIC }, 0, 0, FLAGS,  "mode" },
     { NULL },
 };
 

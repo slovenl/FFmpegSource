@@ -473,7 +473,7 @@ static int predictor_calc_error(int *k, int *state, int order, int error)
     {
         int k_value = *k_ptr, state_value = *state_ptr;
         x -= shift_down(k_value * state_value, LATTICE_SHIFT);
-        state_ptr[1] = state_value + shift_down(k_value * x, LATTICE_SHIFT);
+        state_ptr[1] = state_value + shift_down(k_value * (unsigned)x, LATTICE_SHIFT);
     }
 #else
     for (i = order-2; i >= 0; i--)
@@ -842,7 +842,7 @@ static int sonic_encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
 
 //    av_log(avctx, AV_LOG_DEBUG, "used bytes: %d\n", (put_bits_count(&pb)+7)/8);
 
-    avpkt->size = ff_rac_terminate(&c, 0);
+    avpkt->size = ff_rac_terminate(&c);
     *got_packet_ptr = 1;
     return 0;
 

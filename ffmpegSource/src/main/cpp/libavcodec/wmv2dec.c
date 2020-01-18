@@ -141,21 +141,6 @@ int ff_wmv2_decode_picture_header(MpegEncContext *s)
     if (s->qscale <= 0)
         return AVERROR_INVALIDDATA;
 
-    if (s->pict_type != AV_PICTURE_TYPE_I && show_bits(&s->gb, 1)) {
-        GetBitContext gb = s->gb;
-        int skip_type = get_bits(&gb, 2);
-        int run = skip_type == SKIP_TYPE_COL ? s->mb_width : s->mb_height;
-
-        while (run > 0) {
-            int block = FFMIN(run, 25);
-            if (get_bits(&gb, block) + 1 != 1<<block)
-                break;
-            run -= block;
-        }
-        if (!run)
-            return FRAME_SKIPPED;
-    }
-
     return 0;
 }
 
@@ -229,9 +214,6 @@ int ff_wmv2_decode_secondary_picture_header(MpegEncContext *s)
             s->rl_table_index        = decode012(&s->gb);
             s->rl_chroma_table_index = s->rl_table_index;
         }
-
-        if (get_bits_left(&s->gb) < 2)
-            return AVERROR_INVALIDDATA;
 
         s->dc_table_index   = get_bits1(&s->gb);
         s->mv_table_index   = get_bits1(&s->gb);

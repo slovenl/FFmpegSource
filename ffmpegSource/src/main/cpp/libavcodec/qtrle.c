@@ -297,11 +297,10 @@ static void qtrle_decode_16bpp(QtrleContext *s, int row_ptr, int lines_to_change
 
 static void qtrle_decode_24bpp(QtrleContext *s, int row_ptr, int lines_to_change)
 {
-    int rle_code, rle_code_half;
+    int rle_code;
     int pixel_ptr;
     int row_inc = s->frame->linesize[0];
-    uint8_t b;
-    uint16_t rg;
+    uint8_t r, g, b;
     uint8_t *rgb = s->frame->data[0];
     int pixel_limit = s->frame->linesize[0] * s->avctx->height;
 
@@ -319,31 +318,25 @@ static void qtrle_decode_24bpp(QtrleContext *s, int row_ptr, int lines_to_change
             } else if (rle_code < 0) {
                 /* decode the run length code */
                 rle_code = -rle_code;
-                rg = bytestream2_get_ne16(&s->g);
+                r = bytestream2_get_byte(&s->g);
+                g = bytestream2_get_byte(&s->g);
                 b = bytestream2_get_byte(&s->g);
 
                 CHECK_PIXEL_PTR(rle_code * 3);
 
                 while (rle_code--) {
-                    AV_WN16(rgb + pixel_ptr, rg);
-                    rgb[pixel_ptr + 2] = b;
-                    pixel_ptr += 3;
+                    rgb[pixel_ptr++] = r;
+                    rgb[pixel_ptr++] = g;
+                    rgb[pixel_ptr++] = b;
                 }
             } else {
                 CHECK_PIXEL_PTR(rle_code * 3);
 
-                rle_code_half = rle_code / 2;
-
-                while (rle_code_half--) { /* copy 2 raw rgb value at the same time */
-                    AV_WN32(rgb + pixel_ptr, bytestream2_get_ne32(&s->g)); /* rgbr */
-                    AV_WN16(rgb + pixel_ptr + 4, bytestream2_get_ne16(&s->g)); /* rgbr */
-                    pixel_ptr += 6;
-                }
-
-                if (rle_code % 2 != 0){ /* not even raw value */
-                    AV_WN16(rgb + pixel_ptr, bytestream2_get_ne16(&s->g));
-                    rgb[pixel_ptr + 2] = bytestream2_get_byte(&s->g);
-                    pixel_ptr += 3;
+                /* copy pixels directly to output */
+                while (rle_code--) {
+                    rgb[pixel_ptr++] = bytestream2_get_byte(&s->g);
+                    rgb[pixel_ptr++] = bytestream2_get_byte(&s->g);
+                    rgb[pixel_ptr++] = bytestream2_get_byte(&s->g);
                 }
             }
         }
@@ -353,7 +346,7 @@ static void qtrle_decode_24bpp(QtrleContext *s, int row_ptr, int lines_to_change
 
 static void qtrle_decode_32bpp(QtrleContext *s, int row_ptr, int lines_to_change)
 {
-    int rle_code, rle_code_half;
+    int rle_code;
     int pixel_ptr;
     int row_inc = s->frame->linesize[0];
     unsigned int argb;
@@ -374,7 +367,7 @@ static void qtrle_decode_32bpp(QtrleContext *s, int row_ptr, int lines_to_change
             } else if (rle_code < 0) {
                 /* decode the run length code */
                 rle_code = -rle_code;
-                argb = bytestream2_get_ne32(&s->g);
+                argb = bytestream2_get_be32(&s->g);
 
                 CHECK_PIXEL_PTR(rle_code * 4);
 
@@ -386,15 +379,10 @@ static void qtrle_decode_32bpp(QtrleContext *s, int row_ptr, int lines_to_change
                 CHECK_PIXEL_PTR(rle_code * 4);
 
                 /* copy pixels directly to output */
-                rle_code_half = rle_code / 2;
-                while (rle_code_half--) { /* copy 2 argb raw value at the same time */
-                    AV_WN64(rgb + pixel_ptr, bytestream2_get_ne64(&s->g));
-                    pixel_ptr += 8;
-                }
-
-                if (rle_code % 2 != 0){ /* not even raw value */
-                    AV_WN32A(rgb + pixel_ptr, bytestream2_get_ne32(&s->g));
-                    pixel_ptr += 4;
+                while (rle_code--) {
+                    argb = bytestream2_get_be32(&s->g);
+                    AV_WN32A(rgb + pixel_ptr, argb);
+                    pixel_ptr  += 4;
                 }
             }
         }
@@ -428,7 +416,7 @@ static av_cold int qtrle_decode_init(AVCodecContext *avctx)
         break;
 
     case 32:
-        avctx->pix_fmt = AV_PIX_FMT_ARGB;
+        avctx->pix_fmt = AV_PIX_FMT_RGB32;
         break;
 
     default:
@@ -452,19 +440,18 @@ static int qtrle_decode_frame(AVCodecContext *avctx,
     int header, start_line;
     int height, row_ptr;
     int has_palette = 0;
-    int ret, size;
+    int ret;
 
     bytestream2_init(&s->g, avpkt->data, avpkt->size);
+    if ((ret = ff_reget_buffer(avctx, s->frame)) < 0)
+        return ret;
 
     /* check if this frame is even supposed to change */
     if (avpkt->size < 8)
-        return avpkt->size;
+        goto done;
 
     /* start after the chunk size */
-    size = bytestream2_get_be32(&s->g) & 0x3FFFFFFF;
-    if (size - avpkt->size >  size * (int64_t)avctx->discard_damaged_percentage / 100)
-        return AVERROR_INVALIDDATA;
-
+    bytestream2_seek(&s->g, 4, SEEK_SET);
 
     /* fetch the header */
     header = bytestream2_get_be16(&s->g);
@@ -472,20 +459,17 @@ static int qtrle_decode_frame(AVCodecContext *avctx,
     /* if a header is present, fetch additional decoding parameters */
     if (header & 0x0008) {
         if (avpkt->size < 14)
-            return avpkt->size;
+            goto done;
         start_line = bytestream2_get_be16(&s->g);
         bytestream2_skip(&s->g, 2);
         height     = bytestream2_get_be16(&s->g);
         bytestream2_skip(&s->g, 2);
         if (height > s->avctx->height - start_line)
-            return avpkt->size;
+            goto done;
     } else {
         start_line = 0;
         height     = s->avctx->height;
     }
-    if ((ret = ff_reget_buffer(avctx, s->frame)) < 0)
-        return ret;
-
     row_ptr = s->frame->linesize[0] * start_line;
 
     switch (avctx->bits_per_coded_sample) {
@@ -546,6 +530,7 @@ static int qtrle_decode_frame(AVCodecContext *avctx,
         memcpy(s->frame->data[1], s->pal, AVPALETTE_SIZE);
     }
 
+done:
     if ((ret = av_frame_ref(data, s->frame)) < 0)
         return ret;
     *got_frame      = 1;

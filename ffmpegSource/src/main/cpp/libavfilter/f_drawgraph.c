@@ -20,7 +20,6 @@
 
 #include "float.h"
 
-#include "libavutil/avstring.h"
 #include "libavutil/eval.h"
 #include "libavutil/intreadwrite.h"
 #include "libavutil/opt.h"
@@ -44,7 +43,7 @@ typedef struct DrawGraphContext {
     AVFrame       *out;
     int           x;
     int           prev_y[4];
-    int           first[4];
+    int           first;
     float         *values[4];
     int           values_size[4];
     int           nb_values;
@@ -103,7 +102,7 @@ static av_cold int init(AVFilterContext *ctx)
         }
     }
 
-    s->first[0] = s->first[1] = s->first[2] = s->first[3] = 1;
+    s->first = 1;
 
     if (s->slide == 4) {
         s->values[0] = av_fast_realloc(NULL, &s->values_size[0], 2000);
@@ -216,7 +215,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
         if (!e || !e->value)
             continue;
 
-        if (av_sscanf(e->value, "%f", &vf) != 1)
+        if (sscanf(e->value, "%f", &vf) != 1)
             continue;
 
         vf = av_clipf(vf, s->min, s->max);
@@ -283,8 +282,8 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
             draw_dot(fg, x, y, out);
             break;
         case 2:
-            if (s->first[i]) {
-                s->first[i] = 0;
+            if (s->first) {
+                s->first = 0;
                 s->prev_y[i] = y;
             }
 
@@ -367,8 +366,8 @@ static int request_frame(AVFilterLink *outlink)
                     draw_dot(fg, x, y, out);
                     break;
                 case 2:
-                    if (s->first[i]) {
-                        s->first[i] = 0;
+                    if (s->first) {
+                        s->first = 0;
                         s->prev_y[i] = y;
                     }
 

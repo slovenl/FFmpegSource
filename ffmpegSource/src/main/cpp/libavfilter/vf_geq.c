@@ -88,8 +88,8 @@ static inline double getpix(void *priv, double x, double y, int plane)
     if (!src)
         return 0;
 
-    xi = x = av_clipf(x, 0, w - 2);
-    yi = y = av_clipf(y, 0, h - 2);
+    xi = x = av_clipd(x, 0, w - 2);
+    yi = y = av_clipd(y, 0, h - 2);
 
     x -= xi;
     y -= yi;
@@ -191,9 +191,9 @@ static int geq_query_formats(AVFilterContext *ctx)
         AV_PIX_FMT_YUV444P10,  AV_PIX_FMT_YUV422P10,  AV_PIX_FMT_YUV420P10,
         AV_PIX_FMT_YUV440P10,
         AV_PIX_FMT_YUVA444P10, AV_PIX_FMT_YUVA422P10, AV_PIX_FMT_YUVA420P10,
-        AV_PIX_FMT_GRAY9, AV_PIX_FMT_GRAY10,
+        AV_PIX_FMT_GRAY10,
         AV_PIX_FMT_YUV444P12,  AV_PIX_FMT_YUV422P12,  AV_PIX_FMT_YUV420P12,
-        AV_PIX_FMT_GRAY12, AV_PIX_FMT_GRAY14,
+        AV_PIX_FMT_GRAY12,
         AV_PIX_FMT_YUV444P14,  AV_PIX_FMT_YUV422P14,  AV_PIX_FMT_YUV420P14,
         AV_PIX_FMT_YUV444P16,  AV_PIX_FMT_YUV422P16,  AV_PIX_FMT_YUV420P16,
         AV_PIX_FMT_YUVA444P16, AV_PIX_FMT_YUVA422P16, AV_PIX_FMT_YUVA420P16,

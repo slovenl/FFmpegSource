@@ -37,7 +37,7 @@
 #define DST_MAX_CHANNELS 6
 #define DST_MAX_ELEMENTS (2 * DST_MAX_CHANNELS)
 
-#define DSD_FS44(sample_rate) (sample_rate * 8 / 44100)
+#define DSD_FS44(sample_rate) (sample_rate * 8LL / 44100)
 
 #define DST_SAMPLES_PER_FRAME(sample_rate) (588 * DSD_FS44(sample_rate))
 
@@ -70,7 +70,7 @@ typedef struct DSTContext {
     GetBitContext gb;
     ArithCoder ac;
     Table fsets, probs;
-    DECLARE_ALIGNED(16, uint8_t, status)[DST_MAX_CHANNELS][16];
+    DECLARE_ALIGNED(64, uint8_t, status)[DST_MAX_CHANNELS][16];
     DECLARE_ALIGNED(16, int16_t, filter)[DST_MAX_ELEMENTS][16][256];
     DSDContext dsdctx[DST_MAX_CHANNELS];
 } DSTContext;
@@ -161,6 +161,10 @@ static int read_table(GetBitContext *gb, Table *t, const int8_t code_pred_coeff[
                     c -= (x + 4) / 8;
                 else
                     c += (-x + 3) / 8;
+                if (!is_signed) {
+                    if (c < offset || c >= offset + (1<<coeff_bits))
+                        return AVERROR_INVALIDDATA;
+                }
                 t->coeff[i][j] = c;
             }
         }
@@ -298,11 +302,15 @@ static int decode_frame(AVCodecContext *avctx, void *data,
 
     /* Filter Coef Sets (10.12) */
 
-    read_table(gb, &s->fsets, fsets_code_pred_coeff, 7, 9, 1, 0);
+    ret = read_table(gb, &s->fsets, fsets_code_pred_coeff, 7, 9, 1, 0);
+    if (ret < 0)
+        return ret;
 
     /* Probability Tables (10.13) */
 
-    read_table(gb, &s->probs, probs_code_pred_coeff, 6, 7, 0, 1);
+    ret = read_table(gb, &s->probs, probs_code_pred_coeff, 6, 7, 0, 1);
+    if (ret < 0)
+        return ret;
 
     /* Arithmetic Coded Data (10.11) */
 
@@ -343,8 +351,8 @@ static int decode_frame(AVCodecContext *avctx, void *data,
             v = ((predict >> 15) ^ residual) & 1;
             dsd[((i >> 3) * channels + ch) << 2] |= v << (7 - (i & 0x7 ));
 
-            AV_WL64A(status + 8, (AV_RL64A(status + 8) << 1) | ((AV_RL64A(status) >> 63) & 1));
-            AV_WL64A(status, (AV_RL64A(status) << 1) | v);
+            AV_WN64A(status + 8, (AV_RN64A(status + 8) << 1) | ((AV_RN64A(status) >> 63) & 1));
+            AV_WN64A(status, (AV_RN64A(status) << 1) | v);
         }
     }
 

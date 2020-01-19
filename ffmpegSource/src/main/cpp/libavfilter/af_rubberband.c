@@ -24,7 +24,6 @@
 
 #include "audio.h"
 #include "avfilter.h"
-#include "filters.h"
 #include "formats.h"
 #include "internal.h"
 
@@ -37,7 +36,7 @@ typedef struct RubberBandContext {
         smoothing, formant, opitch, channels;
     int64_t nb_samples_out;
     int64_t nb_samples_in;
-    int nb_samples;
+    int flushed;
 } RubberBandContext;
 
 #define OFFSET(x) offsetof(RubberBandContext, x)
@@ -124,7 +123,7 @@ static int filter_frame(AVFilterLink *inlink, AVFrame *in)
     AVFrame *out;
     int ret = 0, nb_samples;
 
-    rubberband_process(s->rbs, (const float *const *)in->data, in->nb_samples, ff_outlink_get_status(inlink));
+    rubberband_process(s->rbs, (const float *const *)in->data, in->nb_samples, 0);
     s->nb_samples_in += in->nb_samples;
 
     nb_samples = rubberband_available(s->rbs);
@@ -158,34 +157,54 @@ static int config_input(AVFilterLink *inlink)
     if (s->rbs)
         rubberband_delete(s->rbs);
     s->rbs = rubberband_new(inlink->sample_rate, inlink->channels, opts, 1. / s->tempo, s->pitch);
-    if (!s->rbs)
-        return AVERROR(ENOMEM);
 
-    s->nb_samples = rubberband_get_samples_required(s->rbs);
+    inlink->partial_buf_size =
+    inlink->min_samples =
+    inlink->max_samples = rubberband_get_samples_required(s->rbs);
 
     return 0;
 }
 
-static int activate(AVFilterContext *ctx)
+static int request_frame(AVFilterLink *outlink)
 {
-    AVFilterLink *inlink = ctx->inputs[0];
-    AVFilterLink *outlink = ctx->outputs[0];
+    AVFilterContext *ctx = outlink->src;
     RubberBandContext *s = ctx->priv;
-    AVFrame *in = NULL;
-    int ret;
+    AVFilterLink *inlink = ctx->inputs[0];
+    int ret = 0;
 
-    FF_FILTER_FORWARD_STATUS_BACK(outlink, inlink);
+    ret = ff_request_frame(ctx->inputs[0]);
 
-    ret = ff_inlink_consume_samples(inlink, s->nb_samples, s->nb_samples, &in);
-    if (ret < 0)
-        return ret;
-    if (ret > 0)
-        return filter_frame(inlink, in);
+    if (ret == AVERROR_EOF && !s->flushed) {
+        if (rubberband_available(s->rbs) > 0) {
+            AVFrame *out = ff_get_audio_buffer(inlink, 1);
+            int nb_samples;
 
-    FF_FILTER_FORWARD_STATUS(inlink, outlink);
-    FF_FILTER_FORWARD_WANTED(outlink, inlink);
+            if (!out)
+                return AVERROR(ENOMEM);
 
-    return FFERROR_NOT_READY;
+            rubberband_process(s->rbs, (const float *const *)out->data, 1, 1);
+            av_frame_free(&out);
+            nb_samples = rubberband_available(s->rbs);
+
+            if (nb_samples > 0) {
+                out = ff_get_audio_buffer(outlink, nb_samples);
+                if (!out)
+                    return AVERROR(ENOMEM);
+                out->pts = av_rescale_q(s->nb_samples_out,
+                             (AVRational){ 1, outlink->sample_rate },
+                             outlink->time_base);
+                nb_samples = rubberband_retrieve(s->rbs, (float *const *)out->data, nb_samples);
+                out->nb_samples = nb_samples;
+                ret = ff_filter_frame(outlink, out);
+                s->nb_samples_out += nb_samples;
+            }
+        }
+        s->flushed = 1;
+        av_log(ctx, AV_LOG_DEBUG, "nb_samples_in %"PRId64" nb_samples_out %"PRId64"\n",
+                                   s->nb_samples_in, s->nb_samples_out);
+    }
+
+    return ret;
 }
 
 static int process_command(AVFilterContext *ctx, const char *cmd, const char *args,
@@ -225,6 +244,7 @@ static const AVFilterPad rubberband_inputs[] = {
         .name          = "default",
         .type          = AVMEDIA_TYPE_AUDIO,
         .config_props  = config_input,
+        .filter_frame  = filter_frame,
     },
     { NULL }
 };
@@ -233,6 +253,7 @@ static const AVFilterPad rubberband_outputs[] = {
     {
         .name          = "default",
         .type          = AVMEDIA_TYPE_AUDIO,
+        .request_frame = request_frame,
     },
     { NULL }
 };
@@ -244,7 +265,6 @@ AVFilter ff_af_rubberband = {
     .priv_size     = sizeof(RubberBandContext),
     .priv_class    = &rubberband_class,
     .uninit        = uninit,
-    .activate      = activate,
     .inputs        = rubberband_inputs,
     .outputs       = rubberband_outputs,
     .process_command = process_command,

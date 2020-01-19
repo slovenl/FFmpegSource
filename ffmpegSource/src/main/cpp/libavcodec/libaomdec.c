@@ -42,7 +42,8 @@ static av_cold int aom_init(AVCodecContext *avctx,
 {
     AV1DecodeContext *ctx           = avctx->priv_data;
     struct aom_codec_dec_cfg deccfg = {
-        .threads = FFMIN(avctx->thread_count ? avctx->thread_count : av_cpu_count(), 16)
+        /* token partitions+1 would be a decent choice */
+        .threads = FFMIN(avctx->thread_count, 16)
     };
 
     av_log(avctx, AV_LOG_INFO, "%s\n", aom_codec_version_str());

@@ -38,7 +38,6 @@
 #include "mpegvideo.h"
 #include "mjpeg.h"
 #include "mjpegenc.h"
-#include "profiles.h"
 
 static int alloc_huffman(MpegEncContext *s)
 {
@@ -419,7 +418,6 @@ AVCodec ff_mjpeg_encoder = {
         AV_PIX_FMT_YUVJ420P, AV_PIX_FMT_YUVJ422P, AV_PIX_FMT_YUVJ444P, AV_PIX_FMT_NONE
     },
     .priv_class     = &mjpeg_class,
-    .profiles       = NULL_IF_CONFIG_SMALL(ff_mjpeg_profiles),
 };
 #endif
 

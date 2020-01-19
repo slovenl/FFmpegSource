@@ -300,10 +300,8 @@ av_cold int ff_alsa_close(AVFormatContext *s1)
 {
     AlsaData *s = s1->priv_data;
 
-    if (snd_pcm_stream(s->h) == SND_PCM_STREAM_PLAYBACK) {
-        snd_pcm_nonblock(s->h, 0);
-        snd_pcm_drain(s->h);
-    }
+    snd_pcm_nonblock(s->h, 0);
+    snd_pcm_drain(s->h);
     av_freep(&s->reorder_buf);
     if (CONFIG_ALSA_INDEV)
         ff_timefilter_destroy(s->timefilter);

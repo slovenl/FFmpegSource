@@ -160,7 +160,7 @@ release:
 
 static int have_alpha_planar(AVFilterLink *link)
 {
-    enum AVPixelFormat pix_fmt = link->format;
+    enum AVPixelFormat pix_fmt;
     const AVPixFmtDescriptor *desc;
     AVHWFramesContext *fctx;
 

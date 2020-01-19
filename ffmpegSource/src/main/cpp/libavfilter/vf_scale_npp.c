@@ -29,7 +29,6 @@
 #include "libavutil/common.h"
 #include "libavutil/hwcontext.h"
 #include "libavutil/hwcontext_cuda_internal.h"
-#include "libavutil/cuda_check.h"
 #include "libavutil/internal.h"
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
@@ -39,8 +38,6 @@
 #include "internal.h"
 #include "scale.h"
 #include "video.h"
-
-#define CHECK_CU(x) FF_CUDA_CHECK_DL(ctx, device_hwctx->internal->cuda_dl, x)
 
 static const enum AVPixelFormat supported_formats[] = {
     AV_PIX_FMT_YUV420P,
@@ -501,6 +498,7 @@ static int nppscale_filter_frame(AVFilterLink *link, AVFrame *in)
     AVCUDADeviceContext *device_hwctx = frames_ctx->device_ctx->hwctx;
 
     AVFrame *out = NULL;
+    CUresult err;
     CUcontext dummy;
     int ret = 0;
 
@@ -513,13 +511,15 @@ static int nppscale_filter_frame(AVFilterLink *link, AVFrame *in)
         goto fail;
     }
 
-    ret = CHECK_CU(device_hwctx->internal->cuda_dl->cuCtxPushCurrent(device_hwctx->cuda_ctx));
-    if (ret < 0)
+    err = device_hwctx->internal->cuda_dl->cuCtxPushCurrent(device_hwctx->cuda_ctx);
+    if (err != CUDA_SUCCESS) {
+        ret = AVERROR_UNKNOWN;
         goto fail;
+    }
 
     ret = nppscale_scale(ctx, out, in);
 
-    CHECK_CU(device_hwctx->internal->cuda_dl->cuCtxPopCurrent(&dummy));
+    device_hwctx->internal->cuda_dl->cuCtxPopCurrent(&dummy);
     if (ret < 0)
         goto fail;
 

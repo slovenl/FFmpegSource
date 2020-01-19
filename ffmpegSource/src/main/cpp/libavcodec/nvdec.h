@@ -61,8 +61,6 @@ typedef struct NVDECContext {
     unsigned     *slice_offsets;
     int           nb_slices;
     unsigned int  slice_offsets_allocated;
-
-    int           supports_444;
 } NVDECContext;
 
 int ff_nvdec_decode_init(AVCodecContext *avctx);
@@ -74,8 +72,7 @@ int ff_nvdec_simple_decode_slice(AVCodecContext *avctx, const uint8_t *buffer,
                                  uint32_t size);
 int ff_nvdec_frame_params(AVCodecContext *avctx,
                           AVBufferRef *hw_frames_ctx,
-                          int dpb_size,
-                          int supports_444);
+                          int dpb_size);
 int ff_nvdec_get_ref_idx(AVFrame *frame);
 
 #endif /* AVCODEC_NVDEC_H */

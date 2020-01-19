@@ -25,6 +25,7 @@
 #include "imgutils.h"
 #include "mem.h"
 #include "samplefmt.h"
+#include "internal.h"
 
 #if FF_API_FRAME_GET_SET
 MAKE_ACCESSORS(AVFrame, frame, int64_t, best_effort_timestamp)
@@ -186,7 +187,7 @@ static void wipe_side_data(AVFrame *frame)
     av_freep(&frame->side_data);
 }
 
-AVFrame *av_frame_alloc(void)
+AVFrame av_frame_alloc(void)
 {
     AVFrame *frame = av_mallocz(sizeof(*frame));
 

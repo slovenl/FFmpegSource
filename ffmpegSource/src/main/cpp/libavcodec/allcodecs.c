@@ -24,6 +24,7 @@
  * Provide registration of all codecs, parsers and bitstream filters for libavcodec.
  */
 
+#include <libavutil/internal.h>
 #include "config.h"
 #include "libavutil/thread.h"
 #include "avcodec.h"

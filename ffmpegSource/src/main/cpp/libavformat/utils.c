@@ -437,11 +437,12 @@ static int init_input(AVFormatContext *s, const char *filename,
 
     //实际io_open调用的是ffio_open_whitelist,也就是跟avio_open调用的方式是一个
     //io_open函数指针赋值是在avfomat_alloc_context->avformat_get_context_defaults方法中赋值，同时还有io_close  av_class等
-  if ((ret = s->io_open(s, &s->pb, filename, AVIO_FLAG_READ | s->avio_flags, options)) < 0)
+    if ((ret = s->io_open(s, &s->pb, filename, AVIO_FLAG_READ | s->avio_flags, options)) < 0)
         return ret;
 
     if (s->iformat)
         return 0;
+    //探测类型
     return av_probe_input_buffer2(s->pb, &s->iformat, filename,
                                  s, 0, s->format_probesize);
 }
@@ -575,6 +576,7 @@ FF_DISABLE_DEPRECATION_WARNINGS
     av_strlcpy(s->filename, filename ? filename : "", sizeof(s->filename));
 FF_ENABLE_DEPRECATION_WARNINGS
 #endif
+    //算是主线方法init_input（）
     if ((ret = init_input(s, filename, &tmp)) < 0)
         goto fail;
     s->probe_score = ret;

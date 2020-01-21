@@ -32,6 +32,8 @@
 
 #if !HAVE_GETOPT
 #include "compat/getopt.c"
+#include "../avformat.h"
+
 #endif
 
 #define HASH_SIZE 16

@@ -435,7 +435,9 @@ static int init_input(AVFormatContext *s, const char *filename,
         (!s->iformat && (s->iformat = av_probe_input_format2(&pd, 0, &score))))
         return score;
 
-    if ((ret = s->io_open(s, &s->pb, filename, AVIO_FLAG_READ | s->avio_flags, options)) < 0)
+    //实际io_open调用的是ffio_open_whitelist,也就是跟avio_open调用的方式是一个
+    //io_open函数指针赋值是在avfomat_alloc_context->avformat_get_context_defaults方法中赋值，同时还有io_close  av_class等
+  if ((ret = s->io_open(s, &s->pb, filename, AVIO_FLAG_READ | s->avio_flags, options)) < 0)
         return ret;
 
     if (s->iformat)
@@ -542,13 +544,16 @@ int avformat_open_input(AVFormatContext **ps, const char *filename,
     AVDictionary *tmp = NULL;
     ID3v2ExtraMeta *id3v2_extra_meta = NULL;
 
+    //会自动创建AVFormatContext
     if (!s && !(s = avformat_alloc_context()))
         return AVERROR(ENOMEM);
     if (!s->av_class) {
+        //不是通过avformat_alloc_context创建的AVFormatContext
         av_log(NULL, AV_LOG_ERROR, "Input context has not been properly allocated by avformat_alloc_context() and is not NULL either\n");
         return AVERROR(EINVAL);
     }
     if (fmt)
+        //如果传入了格式，会以传入的为准
         s->iformat = fmt;
 
     if (options)

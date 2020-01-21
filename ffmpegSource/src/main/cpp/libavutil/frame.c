@@ -187,7 +187,7 @@ static void wipe_side_data(AVFrame *frame)
     av_freep(&frame->side_data);
 }
 
-AVFrame av_frame_alloc(void)
+AVFrame *av_frame_alloc(void)
 {
     AVFrame *frame = av_mallocz(sizeof(*frame));
 

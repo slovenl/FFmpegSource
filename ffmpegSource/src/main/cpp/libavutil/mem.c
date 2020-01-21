@@ -60,6 +60,7 @@ void  free(void *ptr);
 #endif /* MALLOC_PREFIX */
 
 #include "mem_internal.h"
+#include "internal.h"
 
 #define ALIGN (HAVE_AVX512 ? 64 : (HAVE_AVX ? 32 : 16))
 

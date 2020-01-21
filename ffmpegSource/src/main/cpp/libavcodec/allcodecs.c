@@ -845,6 +845,7 @@ static AVCodec *find_codec(enum AVCodecID id, int (*x)(const AVCodec *))
         if (!x(p))
             continue;
         if (p->id == id) {
+            //experimental，实验性的？ 不要，如果再也找不到了，则返回实验性的codec
             if (p->capabilities & AV_CODEC_CAP_EXPERIMENTAL && !experimental) {
                 experimental = p;
             } else

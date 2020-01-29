@@ -413,6 +413,20 @@ int av_demuxer_open(AVFormatContext *ic) {
 }
 
 /* Open input file and probe the format if necessary. */
+
+/*
+ @author:雷神
+（1）当使用了自定义的AVIOContext的时候（AVFormatContext中的AVIOContext不为空，即s->pb!=NULL），
+ 如果指定了AVInputFormat就直接返回，如果没有指定就调用av_probe_input_buffer2()推测AVInputFormat。
+ 这一情况出现的不算很多，但是当我们从内存中读取数据的时候（需要初始化自定义的AVIOContext），就会执行这一步骤。
+（2）在更一般的情况下，如果已经指定了AVInputFormat，就直接返回；
+ 如果没有指定AVInputFormat，就调用av_probe_input_format(NULL,…)根据文件路径判断文件格式。
+ 这里特意把av_probe_input_format()的第1个参数写成“NULL”，
+ 是为了强调这个时候实际上并没有给函数提供输入数据，此时仅仅通过文件路径推测AVInputFormat。
+（3）如果发现通过文件路径判断不出来文件格式，那么就需要打开文件探测文件格式了，
+ 这个时候会首先调用avio_open2()打开文件，
+ 然后调用av_probe_input_buffer2()推测AVInputFormat。
+*/
 static int init_input(AVFormatContext *s, const char *filename,
                       AVDictionary **options)
 {
@@ -536,6 +550,13 @@ FF_ENABLE_DEPRECATION_WARNINGS
     return 0;
 }
 
+/**
+    ps：函数调用成功之后处理过的AVFormatContext结构体。
+    file：打开的视音频流的URL。
+    fmt：强制指定AVFormatContext中AVInputFormat的。这个参数一般情况下可以设置为NULL，这样FFmpeg可以自动检测AVInputFormat。
+    dictionay：附加的一些选项，一般情况下可以设置为NULL。
+函数执行成功的话，其返回值大于等于0。
+ */
 
 int avformat_open_input(AVFormatContext **ps, const char *filename,
                         AVInputFormat *fmt, AVDictionary **options)
@@ -633,7 +654,7 @@ FF_ENABLE_DEPRECATION_WARNINGS
     if (s->pb)
         ff_id3v2_read_dict(s->pb, &s->internal->id3v2_meta, ID3v2_DEFAULT_MAGIC, &id3v2_extra_meta);
 
-
+    /*read_header读取了视频的文件头并且判断是否包含视音频流，如果包含，则会调用avformat_new_stream创建对应的音视频流*/
     if (!(s->flags&AVFMT_FLAG_PRIV_OPT) && s->iformat->read_header)
         if ((ret = s->iformat->read_header(s)) < 0)
             goto fail;

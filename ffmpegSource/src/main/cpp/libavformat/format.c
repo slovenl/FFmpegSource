@@ -157,10 +157,12 @@ AVInputFormat *av_probe_input_format3(AVProbeData *pd, int is_opened,
             nodat = ID3_GREATER_PROBE;
     }
 
+    //遍历demuxer_list.c中的demuxer
     while ((fmt1 = av_demuxer_iterate(&i))) {
         if (!is_opened == !(fmt1->flags & AVFMT_NOFILE) && strcmp(fmt1->name, "image2"))
             continue;
         score = 0;
+        //调用read_probe接口函数
         if (fmt1->read_probe) {
             score = fmt1->read_probe(&lpd);
             if (score)
@@ -180,9 +182,18 @@ AVInputFormat *av_probe_input_format3(AVProbeData *pd, int is_opened,
                 }
             }
         } else if (fmt1->extensions) {
+            /*
+             * 用于比较文件的后缀。该函数首先通过反向查找的方式找到输入文件名中的“.”，
+             * 就可以通过获取“.”后面的字符串来得到该文件的后缀。
+             * 然后调用av_match_name()，采用和比较格式名称的方法比较两个后缀。
+             */
             if (av_match_ext(lpd.filename, fmt1->extensions))
                 score = AVPROBE_SCORE_EXTENSION;
         }
+        /*
+         使用av_match_name()比较输入媒体的mime_type和AVInputFormat的mime_type，
+         如果匹配的话，设定匹配分数为AVPROBE_SCORE_MIME（AVPROBE_SCORE_MIME取值为75，即75分）
+         */
         if (av_match_name(lpd.mime_type, fmt1->mime_type)) {
             if (AVPROBE_SCORE_MIME > score) {
                 av_log(NULL, AV_LOG_DEBUG, "Probing %s score:%d increased to %d due to MIME type\n", fmt1->name, score, AVPROBE_SCORE_MIME);
@@ -230,6 +241,7 @@ int av_probe_input_buffer2(AVIOContext *pb, AVInputFormat **fmt,
     int ret2;
 
     if (!max_probe_size)
+        /*默认为PROBE_BUF_MAX（PROBE_BUF_MAX取值为1 << 20，即1048576Byte，大约1MB）*/
         max_probe_size = PROBE_BUF_MAX;
     else if (max_probe_size < PROBE_BUF_MIN) {
         av_log(logctx, AV_LOG_ERROR,

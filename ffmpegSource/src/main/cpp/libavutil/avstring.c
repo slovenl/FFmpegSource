@@ -350,7 +350,7 @@ int av_match_name(const char *name, const char *names)
         return 0;
 
     namelen = strlen(name);
-    while (*names) {
+    while (*names) {/*使用了一个while()循环，用于搜索“,”。这是因为FFmpeg中有些格式是对应多种格式名称的*/
         int negate = '-' == *names;
         p = strchr(names, ',');
         if (!p)

@@ -122,7 +122,7 @@ static int xmv_probe(AVProbeData *p)
     if (p->buf_size < XMV_MIN_HEADER_SIZE)
         return 0;
 
-    file_version = AV_RL32(p->buf + 16);
+    file_version = `(p->buf + 16);
     if ((file_version == 0) || (file_version > 4))
         return 0;
 

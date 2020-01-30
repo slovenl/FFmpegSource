@@ -209,7 +209,7 @@ static const AVCodec *find_probe_decoder(AVFormatContext *s, const AVStream *st,
 {
     const AVCodec *codec;
 
-#if CONFIG_H264_DECODER
+#if CONFIG_H264_DECODER/*宏定义使用H264,比较多而通用，可减少不必要工作*/
     /* Other parts of the code assume this decoder to be used for h264,
      * so force it if possible. */
     if (codec_id == AV_CODEC_ID_H264)
@@ -3671,12 +3671,13 @@ FF_ENABLE_DEPRECATION_WARNINGS
         if (st->codecpar->codec_id != st->internal->orig_codec_id)
             st->internal->orig_codec_id = st->codecpar->codec_id;
 
+        /*AVCodecParameters的部分参数赋值到context中*/
         ret = avcodec_parameters_to_context(avctx, st->codecpar);
         if (ret < 0)
             goto find_stream_info_err;
         if (st->request_probe <= 0)
             st->internal->avctx_inited = 1;
-
+        //找到解码器，如果定义了H264，则使用avcodec_find_decoder_by_name("h264")找到，否则，使用find_decoder找到解码器
         codec = find_probe_decoder(ic, st, st->codecpar->codec_id);
 
         /* Force thread count to 1 since the H.264 decoder will not extract

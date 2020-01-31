@@ -880,20 +880,24 @@ typedef struct AVStreamInternal AVStreamInternal;
  * sizeof(AVStream) must not be used outside libav*.
  */
 typedef struct AVStream {
+    //AVFormatContext流索引
     int index;    /**< stream index in AVFormatContext */
     /**
      * Format-specific stream ID.
      * decoding: set by libavformat
      * encoding: set by the user, replaced by libavformat if left unset
      */
+    //流id
     int id;
 #if FF_API_LAVF_AVCTX
     /**
      * @deprecated use the codecpar struct instead
      */
     attribute_deprecated
+    //过时，使用codecpar结构体
     AVCodecContext *codec;
 #endif
+    //私有数据
     void *priv_data;
 
     /**
@@ -908,6 +912,7 @@ typedef struct AVStream {
      *           written into the file (which may or may not be related to the
      *           user-provided one, depending on the format).
      */
+    //时间基，以秒为单位
     AVRational time_base;
 
     /**
@@ -918,6 +923,7 @@ typedef struct AVStream {
      * @note The ASF header does NOT contain a correct start_time the ASF
      * demuxer must NOT set this.
      */
+    //按显示图像排序的第一帧的PTS,注意，ASF header不包含正确的start_time,ASF Demuxer不要设置此属性
     int64_t start_time;
 
     /**
@@ -928,12 +934,12 @@ typedef struct AVStream {
      * Encoding: May be set by the caller before avformat_write_header() to
      * provide a hint to the muxer about the estimated duration.
      */
+    //流时长
     int64_t duration;
-
+    //流中 的帧数
     int64_t nb_frames;                 ///< number of frames in this stream if known or 0
-
     int disposition; /**< AV_DISPOSITION_* bit field */
-
+    //选择哪个packet可以废弃掉，不需要demux
     enum AVDiscard discard; ///< Selects which packets can be discarded at will and do not need to be demuxed.
 
     /**
@@ -941,8 +947,9 @@ typedef struct AVStream {
      * - encoding: Set by user.
      * - decoding: Set by libavformat.
      */
+    // 采样率
     AVRational sample_aspect_ratio;
-
+    //元数据
     AVDictionary *metadata;
 
     /**
@@ -952,6 +959,7 @@ typedef struct AVStream {
      *             avformat_find_stream_info().
      * - muxing: May be set by the caller before avformat_write_header().
      */
+    //平均帧率
     AVRational avg_frame_rate;
 
     /**
@@ -961,6 +969,7 @@ typedef struct AVStream {
      * decoding: set by libavformat, must not be modified by the caller.
      * encoding: unused
      */
+    //对于有AV_DISPOSITION_ATTACHED_PIC的配置，packet将包含附加图像
     AVPacket attached_pic;
 
     /**
@@ -981,10 +990,12 @@ typedef struct AVStream {
      *
      * @see av_format_inject_global_side_data()
      */
+    //整个流的side data
     AVPacketSideData *side_data;
     /**
      * The number of elements in the AVStream.side_data array.
      */
+    // side data的个数
     int            nb_side_data;
 
     /**
@@ -992,6 +1003,7 @@ typedef struct AVStream {
      * be cleared by the user once the event has been handled.
      * A combination of AVSTREAM_EVENT_FLAG_*.
      */
+    //检测流时的标示
     int event_flags;
 #define AVSTREAM_EVENT_FLAG_METADATA_UPDATED 0x0001 ///< The call resulted in updated metadata.
 
@@ -1026,6 +1038,7 @@ typedef struct AVStream {
      *             avformat_find_stream_info()
      * - muxing: filled by the caller before avformat_write_header()
      */
+    //Codec参数，通过avformat_new_stream分配，通过avformat_free_context释放
     AVCodecParameters *codecpar;
 
     /*****************************************************************
@@ -1057,6 +1070,7 @@ typedef struct AVStream {
          * >0 -> decoder found
          * <0 -> decoder with codec_id == -found_decoder has not been found
          */
+        //大于0，表示找到，否则未找到
         int found_decoder;
 
         int64_t last_duration;
@@ -1070,7 +1084,7 @@ typedef struct AVStream {
         int     fps_last_dts_idx;
 
     } *info;
-
+    //用于装饰控制时表示PTS数目
     int pts_wrap_bits; /**< number of bits in pts (used for wrapping control) */
 
     // Timestamp generation support:
@@ -1081,7 +1095,9 @@ typedef struct AVStream {
      * a DTS is received from the underlying container. Otherwise set to
      * AV_NOPTS_VALUE by default.
      */
+    //第一个DTS
     int64_t first_dts;
+    //当前的DTS
     int64_t cur_dts;
     int64_t last_IP_pts;
     int last_IP_duration;
@@ -1089,11 +1105,13 @@ typedef struct AVStream {
     /**
      * Number of packets to buffer for codec probing
      */
+    //codec探测出Buffer的packet数
     int probe_packets;
 
     /**
      * Number of frames that have been demuxed during avformat_find_stream_info()
      */
+    //解复用后的帧数
     int codec_info_nb_frames;
 
     /* av_read_frame() support */
@@ -1118,8 +1136,8 @@ typedef struct AVStream {
      * This is the MPEG-TS stream identifier +1
      * 0 means unknown
      */
+    //stream识别，0表示未知
     int stream_identifier;
-
     int64_t interleaver_chunk_size;
     int64_t interleaver_chunk_duration;
 
@@ -1130,16 +1148,19 @@ typedef struct AVStream {
      * rest -> perform probing with request_probe being the minimum score to accept.
      * NOT PART OF PUBLIC API
      */
+    //stream探测状态，-1表示探测完成，0表示没有探测请求
     int request_probe;
     /**
      * Indicates that everything up to the next keyframe
      * should be discarded.
      */
+    //跳过下一个关键帧
     int skip_to_keyframe;
 
     /**
      * Number of samples to skip at the start of the frame decoded from the next packet.
      */
+    //帧开始时，下一个Packet中解码的样本数
     int skip_samples;
 
     /**
@@ -1157,6 +1178,7 @@ typedef struct AVStream {
      * avoided for broken by design formats such as mp3 with ad-hoc gapless
      * audio support.
      */
+    //第一个废弃的采样
     int64_t first_discard_sample;
 
     /**
@@ -1164,23 +1186,27 @@ typedef struct AVStream {
      * first_discard_sample. Works on frame boundaries only. Used to prevent
      * early EOF if the gapless info is broken (considered concatenated mp3s).
      */
+    //上次废弃的采样，避免EOF
     int64_t last_discard_sample;
 
     /**
      * Number of internally decoded frames, used internally in libavformat, do not access
      * its lifetime differs from info which is why it is not in that structure.
      */
+    //解码后的帧数
     int nb_decoded_frames;
 
     /**
      * Timestamp offset added to timestamps before muxing
      * NOT PART OF PUBLIC API
      */
+    //在muxing时，给时间戳添加偏移量
     int64_t mux_ts_offset;
 
     /**
      * Internal data to check for wrapping of the time stamp
      */
+    //检查时间戳的包装
     int64_t pts_wrap_reference;
 
     /**
@@ -1193,16 +1219,19 @@ typedef struct AVStream {
      * will be subtracted, which will create negative time stamps.
      * Otherwise the offset will be added.
      */
+    //PTS的拓展行为
     int pts_wrap_behavior;
 
     /**
      * Internal data to prevent doing update_initial_durations() twice
      */
+    //避免更新初始化时间两次
     int update_initial_durations_done;
 
     /**
      * Internal data to generate dts from pts
      */
+    //pts生成dts
     int64_t pts_reorder_error[MAX_REORDER_DELAY+1];
     uint8_t pts_reorder_error_count[MAX_REORDER_DELAY+1];
 
@@ -1216,6 +1245,7 @@ typedef struct AVStream {
     /**
      * Internal data to inject global side data
      */
+    //内部数据注入全局side data
     int inject_global_side_data;
 
     /**
@@ -1223,12 +1253,14 @@ typedef struct AVStream {
      * - encoding: unused
      * - decoding: Set by libavformat to calculate sample_aspect_ratio internally
      */
+    //显示率
     AVRational display_aspect_ratio;
 
     /**
      * An opaque field for libavformat internal usage.
      * Must not be accessed in any way by callers.
      */
+    //libavformat内部使用的成员
     AVStreamInternal *internal;
 } AVStream;
 

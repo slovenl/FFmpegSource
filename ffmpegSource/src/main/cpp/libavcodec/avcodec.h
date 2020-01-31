@@ -1404,12 +1404,14 @@ typedef struct AVPacketSideData {
  * @see av_packet_ref
  * @see av_packet_unref
  */
+ //AVPacket 代表音视频数据帧，固有的属性是一些标记，时钟信息，和压缩数据首地址，大小等信息。
 typedef struct AVPacket {
     /**
      * A reference to the reference-counted buffer where the packet data is
      * stored.
      * May be NULL, then the packet data is not reference-counted.
      */
+    //用来管理data指针引用的数据缓存
     AVBufferRef *buf;
     /**
      * Presentation timestamp in AVStream->time_base units; the time at which
@@ -1427,17 +1429,21 @@ typedef struct AVPacket {
      * Can be AV_NOPTS_VALUE if it is not stored in the file.
      */
     int64_t dts;
+    //指向保存的压缩数据的指针
     uint8_t *data;
     int   size;
+    //该packet 所属的流的索引，一般为 0 或者 1
     int   stream_index;
     /**
      * A combination of AV_PKT_FLAG values
      */
+    //AV_PKT_FLAG属性的组合
     int   flags;
     /**
      * Additional packet data that can be provided by the container.
      * Packet can contain several types of side information.
      */
+    //填充容器的一些附加数据
     AVPacketSideData *side_data;
     int side_data_elems;
 
@@ -1445,8 +1451,9 @@ typedef struct AVPacket {
      * Duration of this packet in AVStream->time_base units, 0 if unknown.
      * Equals next_pts - this_pts in presentation order.
      */
+    //packet时长
     int64_t duration;
-
+    //packet中的位置
     int64_t pos;                            ///< byte position in stream, -1 if unknown
 
 #if FF_API_CONVERGENCE_DURATION
@@ -1520,7 +1527,9 @@ typedef struct AVCodecContext {
      * information on struct for av_log
      * - set by avcodec_alloc_context3
      */
+    //av_log使用的结构体，使用avcodec_alloc_context3设置
     const AVClass *av_class;
+    //日志中的级别
     int log_level_offset;
 
     enum AVMediaType codec_type; /* see AVMEDIA_TYPE_xxx */
@@ -1540,8 +1549,9 @@ typedef struct AVCodecContext {
      * - encoding: Set by user, if not then the default based on codec_id will be used.
      * - decoding: Set by user, will be converted to uppercase by libavcodec during init.
      */
+    //codec的标记
     unsigned int codec_tag;
-
+    //私有数据
     void *priv_data;
 
     /**
@@ -1550,6 +1560,7 @@ typedef struct AVCodecContext {
      * Unlike priv_data, this is not codec-specific. It is used in general
      * libavcodec functions.
      */
+    //内部使用的上下文环境
     struct AVCodecInternal *internal;
 
     /**
@@ -1565,6 +1576,7 @@ typedef struct AVCodecContext {
      * - decoding: Set by user, may be overwritten by libavcodec
      *             if this info is available in the stream
      */
+    //平均比特率
     int64_t bit_rate;
 
     /**
@@ -1709,6 +1721,7 @@ typedef struct AVCodecContext {
      * - encoding: Set by user.
      * - decoding: unused
      */
+    //GOP大小
     int gop_size;
 
     /**
@@ -3405,6 +3418,25 @@ struct AVSubtitle;
 /**
  * AVCodec.
  */
+ /**
+  AVCodec ff_h264_decoder = {
+    .name                  = "h264",
+    .long_name             = NULL_IF_CONFIG_SMALL("H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10"),
+    .type                  = AVMEDIA_TYPE_VIDEO,
+    .id                    = AV_CODEC_ID_H264,
+    .priv_data_size        = sizeof(H264Context),
+    .init                  = h264_decode_init,
+    .close                 = h264_decode_end,
+    .decode                = h264_decode_frame,
+    .capabilities          = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_DELAY | AV_CODEC_CAP_SLICE_THREADS | AV_CODEC_CAP_FRAME_THREADS,
+    .caps_internal         = FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_EXPORTS_CROPPING,
+    .flush                 = flush_dpb,
+    .init_thread_copy      = ONLY_IF_THREADS_ENABLED(decode_init_thread_copy),
+    .update_thread_context = ONLY_IF_THREADS_ENABLED(ff_h264_update_thread_context),
+    .profiles              = NULL_IF_CONFIG_SMALL(ff_h264_profiles),
+    .priv_class            = &h264_class,
+    };
+  */
 typedef struct AVCodec {
     /**
      * Name of the codec implementation.
@@ -3417,8 +3449,11 @@ typedef struct AVCodec {
      * Descriptive name for the codec, meant to be more human readable than name.
      * You should use the NULL_IF_CONFIG_SMALL() macro to define it.
      */
+    //长名称
     const char *long_name;
+    //AVMediaType 音视频、字幕
     enum AVMediaType type;
+
     enum AVCodecID id;
     /**
      * Codec capabilities.

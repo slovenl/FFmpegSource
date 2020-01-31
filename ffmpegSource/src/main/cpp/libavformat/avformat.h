@@ -630,19 +630,36 @@ typedef struct AVOutputFormat {
  * @addtogroup lavf_decoding
  * @{
  */
+//类似于一个接口类，多态为每一个容器格式，mp4,flv等等，还有一堆read_header，read_probe等接口函数
+// 是解复用对象，每一种文件容器格式对应一个AVInputFormat,在程序运行时有多个实例。
+// 在ffmpeg初始化时，把所有的容器格式通过next组成链表，查找也是通过遍历链表就行查找。以MP3为例
+/**
+ AVInputFormat ff_mp3_demuxer = {
+    .name           = "mp3",
+    .long_name      = NULL_IF_CONFIG_SMALL("MP2/3 (MPEG audio layer 2/3)"),
+    .read_probe     = mp3_read_probe,
+    .read_header    = mp3_read_header,
+    .read_packet    = mp3_read_packet,
+    .read_seek      = mp3_seek,
+    .priv_data_size = sizeof(MP3DecContext),
+    .flags          = AVFMT_GENERIC_INDEX,
+    .extensions     = "mp2,mp3,m2a,mpa",
+    .priv_class     = &demuxer_class,
+    }
+ */
 typedef struct AVInputFormat {
     /**
      * A comma separated list of short names for the format. New names
      * may be appended with a minor bump.
      */
-    const char *name;
+    const char *name; //格式的短名称，例子中就是mp3
 
     /**
      * Descriptive name for the format, meant to be more human-readable
      * than name. You should use the NULL_IF_CONFIG_SMALL() macro
      * to define it.
      */
-    const char *long_name;
+    const char *long_name;//格式的长名称，egg中的"MP2/3 (MPEG audio layer 2/3)"
 
     /**
      * Can use flags: AVFMT_NOFILE, AVFMT_NEEDNUMBER, AVFMT_SHOW_IDS,
@@ -656,18 +673,18 @@ typedef struct AVInputFormat {
      * usually not use extension format guessing because it is not
      * reliable enough
      */
-    const char *extensions;
+    const char *extensions; //如果定义了拓展，则不进行格式探测，但是不常用，应为不可靠
 
     const struct AVCodecTag * const *codec_tag;
 
-    const AVClass *priv_class; ///< AVClass for the private context
+    const AVClass *priv_class; ///< AVClass for the private context 用于内部的Context
 
     /**
      * Comma-separated list of mime types.
      * It is used check for matching mime types while probing.
      * @see av_probe_input_format2
      */
-    const char *mime_type;
+    const char *mime_type;  //mime类型，如video/avc,在probing时需要检查
 
     /*****************************************************************
      * No fields below this line are part of the public API. They
@@ -676,31 +693,31 @@ typedef struct AVInputFormat {
      * New public fields should be added right above.
      *****************************************************************
      */
-    struct AVInputFormat *next;
+    struct AVInputFormat *next; //链表指针，指向下一个AVInputFormat
 
     /**
      * Raw demuxers store their codec ID here.
      */
-    int raw_codec_id;
+    int raw_codec_id; //原始Demuxer存储的codec_id
 
     /**
      * Size of private data so that it can be allocated in the wrapper.
      */
-    int priv_data_size;
+    int priv_data_size; //某种格式文件的数据大小
 
     /**
      * Tell if a given file has a chance of being parsed as this format.
      * The buffer provided is guaranteed to be AVPROBE_PADDING_SIZE bytes
      * big so you do not have to check for that unless you need more.
      */
-    int (*read_probe)(AVProbeData *);
+    int (*read_probe)(AVProbeData *); //读取probe数据，提供的probe数据必须保证AVPROBE_PADDING_SIZE
 
     /**
      * Read the format header and initialize the AVFormatContext
      * structure. Return 0 if OK. 'avformat_new_stream' should be
      * called to create new streams.
      */
-    int (*read_header)(struct AVFormatContext *);
+    int (*read_header)(struct AVFormatContext *);//读取format头并初始化AVFormatContext结构，返回0，表示ok
 
     /**
      * Read one packet and put it in 'pkt'. pts and flags are also
@@ -711,13 +728,13 @@ typedef struct AVInputFormat {
      *         When returning an error, pkt must not have been allocated
      *         or must be freed before returning
      */
-    int (*read_packet)(struct AVFormatContext *, AVPacket *pkt);
+    int (*read_packet)(struct AVFormatContext *, AVPacket *pkt); //读取一个packet，并保存到传入的pkt指针中
 
     /**
      * Close the stream. The AVFormatContext and AVStreams are not
      * freed by this function
      */
-    int (*read_close)(struct AVFormatContext *);
+    int (*read_close)(struct AVFormatContext *);//关闭流
 
     /**
      * Seek to a given timestamp relative to the frames in
@@ -728,26 +745,26 @@ typedef struct AVInputFormat {
      * @return >= 0 on success (but not necessarily the new offset)
      */
     int (*read_seek)(struct AVFormatContext *,
-                     int stream_index, int64_t timestamp, int flags);
+                     int stream_index, int64_t timestamp, int flags); //seek到给定的时间戳
 
     /**
      * Get the next timestamp in stream[stream_index].time_base units.
      * @return the timestamp or AV_NOPTS_VALUE if an error occurred
      */
     int64_t (*read_timestamp)(struct AVFormatContext *s, int stream_index,
-                              int64_t *pos, int64_t pos_limit);
+                              int64_t *pos, int64_t pos_limit);//读取给定的时间戳
 
     /**
      * Start/resume playing - only meaningful if using a network-based format
      * (RTSP).
      */
-    int (*read_play)(struct AVFormatContext *);
+    int (*read_play)(struct AVFormatContext *); //开始/恢复播放，仅仅在网络协议RTSP下才有意义
 
     /**
      * Pause playing - only meaningful if using a network-based format
      * (RTSP).
      */
-    int (*read_pause)(struct AVFormatContext *);
+    int (*read_pause)(struct AVFormatContext *); //暂停，仅仅在网络协议RTSP下才有意义
 
     /**
      * Seek to timestamp ts.
@@ -755,22 +772,23 @@ typedef struct AVInputFormat {
      * can be presented successfully will be closest to ts and within min/max_ts.
      * Active streams are all streams that have AVStream.discard < AVDISCARD_ALL.
      */
+     //快进快退到指定时间戳
     int (*read_seek2)(struct AVFormatContext *s, int stream_index, int64_t min_ts, int64_t ts, int64_t max_ts, int flags);
 
     /**
      * Returns device list with it properties.
      * @see avdevice_list_devices() for more details.
      */
-    int (*get_device_list)(struct AVFormatContext *s, struct AVDeviceInfoList *device_list);
+    int (*get_device_list)(struct AVFormatContext *s, struct AVDeviceInfoList *device_list); //返回设备列表及其属性
 
     /**
-     * Initialize device capabilities submodule.
+     * Initialize device capabilities submodule. 初始化设备能力子模块
      * @see avdevice_capabilities_create() for more details.
      */
     int (*create_device_capabilities)(struct AVFormatContext *s, struct AVDeviceCapabilitiesQuery *caps);
 
     /**
-     * Free device capabilities submodule.
+     * Free device capabilities submodule. 释放设备能力子模块
      * @see avdevice_capabilities_free() for more details.
      */
     int (*free_device_capabilities)(struct AVFormatContext *s, struct AVDeviceCapabilitiesQuery *caps);

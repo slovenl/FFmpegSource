@@ -281,6 +281,7 @@ typedef struct AVFrame {
     /**
      * number of audio samples (per channel) described by this frame
      */
+    //每个信道的音频采样点个数
     int nb_samples;
 
     /**
@@ -288,21 +289,25 @@ typedef struct AVFrame {
      * Values correspond to enum AVPixelFormat for video frames,
      * enum AVSampleFormat for audio)
      */
+    //帧的像素格式
     int format;
 
     /**
      * 1 -> keyframe, 0-> not
      */
+    //是否是关键帧
     int key_frame;
 
     /**
      * Picture type of the frame.
      */
+    //帧的图像类型
     enum AVPictureType pict_type;
 
     /**
      * Sample aspect ratio for the video frame, 0/1 if unknown/unspecified.
      */
+    //视频帧的采样率
     AVRational sample_aspect_ratio;
 
     /**
@@ -316,6 +321,7 @@ typedef struct AVFrame {
      * @deprecated use the pts field instead
      */
     attribute_deprecated
+    //从AVPacket中复制的PTS
     int64_t pkt_pts;
 #endif
 
@@ -324,25 +330,30 @@ typedef struct AVFrame {
      * This is also the Presentation time of this AVFrame calculated from
      * only AVPacket.dts values without pts values.
      */
+    //从AVPacket中复制的DTS
     int64_t pkt_dts;
 
     /**
      * picture number in bitstream order
      */
+    //按解码排序后的图像数
     int coded_picture_number;
     /**
      * picture number in display order
      */
+    //按显示位置排序后的图像数
     int display_picture_number;
 
     /**
      * quality (between 1 (good) and FF_LAMBDA_MAX (bad))
      */
+    //在1~FF_LAMBDA_MAX之间取值
     int quality;
 
     /**
      * for some private data of the user
      */
+    //私有数据
     void *opaque;
 
 #if FF_API_ERROR_FRAME
@@ -357,11 +368,13 @@ typedef struct AVFrame {
      * When decoding, this signals how much the picture must be delayed.
      * extra_delay = repeat_pict / (2*fps)
      */
+    //解码时有多少图像被延迟extra_delay = repeat_pict / (2*fps)
     int repeat_pict;
 
     /**
      * The content of the picture is interlaced.
      */
+    //交错帧，表示图像的内容是交错的
     int interlaced_frame;
 
     /**
@@ -388,11 +401,13 @@ typedef struct AVFrame {
     /**
      * Sample rate of the audio data.
      */
+    //音频数据的采样率
     int sample_rate;
 
     /**
      * Channel layout of the audio data.
      */
+    //音频数据的信道布局
     uint64_t channel_layout;
 
     /**
@@ -471,6 +486,7 @@ typedef struct AVFrame {
      * - encoding: Set by user
      * - decoding: Set by libavcodec
      */
+    //yuV颜色空间类型
     enum AVColorSpace colorspace;
 
     enum AVChromaLocation chroma_location;
@@ -487,6 +503,7 @@ typedef struct AVFrame {
      * - encoding: unused
      * - decoding: Read by user.
      */
+    //记录上一个包输出解码器时Packet的位置
     int64_t pkt_pos;
 
     /**
@@ -520,6 +537,7 @@ typedef struct AVFrame {
      * - encoding: unused
      * - decoding: Read by user.
      */
+    //音频声道个数
     int channels;
 
     /**
@@ -529,6 +547,7 @@ typedef struct AVFrame {
      * - encoding: unused
      * - decoding: set by libavcodec, read by user.
      */
+    //Packet大小，由av_frame_get_pkt_size获取，av_frame_set_pkt_size设置
     int pkt_size;
 
 #if FF_API_FRAME_QP

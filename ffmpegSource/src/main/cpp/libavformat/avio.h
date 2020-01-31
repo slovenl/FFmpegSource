@@ -171,6 +171,7 @@ typedef struct AVIOContext {
      * warning -- this field can be NULL, be sure to not pass this AVIOContext
      * to any av_opt_* functions in that case.
      */
+    //AVIOContext通过avio_open2()创建，av_class通过option选项传递到protocols
     const AVClass *av_class;
 
     /*
@@ -276,18 +277,21 @@ typedef struct AVIOContext {
      * Bytes read statistic
      * This field is internal to libavformat and access from outside is not allowed.
      */
+    //读取bytes次数统计
     int64_t bytes_read;
 
     /**
      * seek statistic
      * This field is internal to libavformat and access from outside is not allowed.
      */
+    //快进快退次数统计
     int seek_count;
 
     /**
      * writeout statistic
      * This field is internal to libavformat and access from outside is not allowed.
      */
+    //写入数据次数统计
     int writeout_count;
 
     /**
@@ -295,6 +299,7 @@ typedef struct AVIOContext {
      * used internally after probing and ensure seekback to reset the buffer size
      * This field is internal to libavformat and access from outside is not allowed.
      */
+     //原始buffer大小
     int orig_buffer_size;
 
     /**

@@ -22,6 +22,7 @@ file(GLOB libpostproc libpostproc/*.c)
 file(GLOB libswresample libswresample/*.c)
 file(GLOB libswscale libswscale/*.c)
 file(GLOB libavformat libavformat/*.c)
+file(GLOB sample sample/*.c)
 
 add_library( # Sets the name of the library.
         native-lib
@@ -41,6 +42,7 @@ add_library( # Sets the name of the library.
         ${libswresample}
         ${libswscale}
         ${libavformat}
+        ${sample}
         )
 
 # Searches for a specified prebuilt library and stores the path as a
